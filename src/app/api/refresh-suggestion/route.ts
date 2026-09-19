@@ -11,9 +11,18 @@ const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 // console.log(interaction.output_text);
 
 export async function GET() {
-    const response = await ai.models.generateContent({
+    try {
+        const response = await ai.models.generateContent({
             model: "gemini-3.6-flash",
             contents: "Explain how AI works in a few words",
-});
-    return NextResponse.json({ suggestion: response.text },{status: 200});
+        });
+
+        return NextResponse.json({ suggestion: response.text }, { status: 200 });
+    } catch (error) {
+        console.error("Failed to generate refresh suggestion", error);
+        return NextResponse.json(
+            { error: "Failed to generate refresh suggestion" },
+            { status: 500 },
+        );
+    }
 }

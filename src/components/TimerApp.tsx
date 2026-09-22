@@ -14,6 +14,10 @@ import { useReward } from "react-rewards";
 import { playNotificationSound } from "@/utils/sound";
 import MetaDataUpdater from "@/components/MetaDataUpdater";
 import { Switch } from "@/components/ui/switch";
+import { generateRefreshSuggestions } from "@/utils/gemini";
+import RefreshSuggestion from "@/components/ui/RefreshSuggestion";
+import { error } from "console";
+
 
 type Mode = "work" | "break";
 
@@ -37,6 +41,7 @@ export default function TimerApp() {
   });
   const [mode, setMode] = useState<Mode>("work");
   const [autoStart, setAutoStart] = useState(false);
+  const [refreshSuggestion, setRefreshSuggestion] = useState<string | null>(null);
 
   const handleStart = () => {
     setIsRunning(!isRunning);
@@ -57,6 +62,12 @@ export default function TimerApp() {
         : { minutes: workDuration, seconds: 0 },
     );
     setMode(mode === "work" ? "break" : "work");
+
+    if (mode === "break") {
+      generateRefreshSuggestions().then((suggestion) => 
+          setRefreshSuggestion(suggestion)
+        ).catch(console.error);
+    }
     setIsRunning(autoStart);
   };
 
@@ -68,17 +79,18 @@ export default function TimerApp() {
           if (prev.seconds === 0) {
             if (prev.minutes === 0) {
               setIsRunning(false);
-              playNotificationSound();
-              toggleMode();
+              // toggleMode();
               if (mode === "work") {
-                confetti();
+                void confetti();
               }
 
-            //   setTimeout(() => {
-            //     toggleMode();
-            //   }, 100);
+              void playNotificationSound();
 
-              return { minutes: 0, seconds: 0 };
+              setTimeout(() => {
+                toggleMode();
+              }, 100);
+
+              return prev;
             }
             return { minutes: prev.minutes - 1, seconds: 59 };
           }
@@ -128,7 +140,7 @@ export default function TimerApp() {
                   setTimeLeft({ minutes: newDuration, seconds: 0 });
                 }
               }}
-              className="p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="p-2 border rounded-md cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               {[5, 10, 15, 25, 30, 60].map((value) => (
                 <option key={value} value={value}>
@@ -148,7 +160,7 @@ export default function TimerApp() {
                   setTimeLeft({ minutes: newDuration, seconds: 0 });
                 }
               }}
-              className="p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="p-2 border rounded-md cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               {[5, 10, 15].map((value) => (
                 <option key={value} value={value}>
@@ -159,7 +171,7 @@ export default function TimerApp() {
           </div>
           <div className="flex items-center gap-2 w-full justify-between">
             <label className="text-sm font-medium">自動開始</label>
-            <Switch checked={autoStart} onCheckedChange={() => setAutoStart(!autoStart)} />
+            <Switch checked={autoStart} className="cursor-pointer" onCheckedChange={() => setAutoStart(!autoStart)} />
           </div>
         </CardFooter>
       </Card>
@@ -167,6 +179,10 @@ export default function TimerApp() {
         minutes={timeLeft.minutes}
         seconds={timeLeft.seconds}
         mode={mode}
+      />
+      <RefreshSuggestion
+        suggestion={refreshSuggestion}
+        onClose={() => setRefreshSuggestion(null)}
       />
     </div>
   );

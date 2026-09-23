@@ -18,20 +18,15 @@ import { generateRefreshSuggestions } from "@/utils/gemini";
 import RefreshSuggestion from "@/components/ui/RefreshSuggestion";
 import { error } from "console";
 
-
 type Mode = "work" | "break";
 
 export default function TimerApp() {
-  const { reward: confetti } = useReward(
-    "confettiReward",
-    "confetti",
-    {
-      elementCount: 100,
-      spread: 70,
-      decay: 0.9,
-      lifetime: 150,
-    },
-  );
+  const { reward: confetti } = useReward("confettiReward", "confetti", {
+    elementCount: 100,
+    spread: 70,
+    decay: 0.9,
+    lifetime: 150,
+  });
   const [isRunning, setIsRunning] = useState(false);
   const [workDuration, setWorkDuration] = useState(25);
   const [breakDuration, setBreakDuration] = useState(5);
@@ -41,7 +36,9 @@ export default function TimerApp() {
   });
   const [mode, setMode] = useState<Mode>("work");
   const [autoStart, setAutoStart] = useState(false);
-  const [refreshSuggestion, setRefreshSuggestion] = useState<string | null>(null);
+  const [refreshSuggestion, setRefreshSuggestion] = useState<string | null>(
+    null,
+  );
 
   const handleStart = () => {
     setIsRunning(!isRunning);
@@ -55,6 +52,8 @@ export default function TimerApp() {
     });
   };
 
+  const [timerCompleted, setTimerCompleted] = useState(false);
+
   const toggleMode = () => {
     setTimeLeft(
       mode === "work"
@@ -63,10 +62,10 @@ export default function TimerApp() {
     );
     setMode(mode === "work" ? "break" : "work");
 
-    if (mode === "break") {
-      generateRefreshSuggestions().then((suggestion) => 
-          setRefreshSuggestion(suggestion)
-        ).catch(console.error);
+    if (mode === "work") {
+      generateRefreshSuggestions()
+        .then((suggestion) => setRefreshSuggestion(suggestion))
+        .catch(console.error);
     }
     setIsRunning(autoStart);
   };
@@ -84,10 +83,10 @@ export default function TimerApp() {
                 void confetti();
               }
 
-              void playNotificationSound();
+              // void playNotificationSound();
 
               setTimeout(() => {
-                toggleMode();
+                setTimerCompleted(true); // 完了フラグをセット（この1行を変更しています）
               }, 100);
 
               return prev;
@@ -102,6 +101,13 @@ export default function TimerApp() {
       clearInterval(intervalId);
     };
   }, [isRunning]);
+
+  useEffect(() => {
+    if (timerCompleted) {
+      toggleMode(); // モードを自動切り替え
+      setTimerCompleted(false); // 完了状態をリセット
+    }
+  }, [timerCompleted, mode, workDuration, breakDuration, autoStart]);
 
   return (
     <div className="relative min-h-screen flex items-center justify-center bg-background p-4">
@@ -171,7 +177,11 @@ export default function TimerApp() {
           </div>
           <div className="flex items-center gap-2 w-full justify-between">
             <label className="text-sm font-medium">自動開始</label>
-            <Switch checked={autoStart} className="cursor-pointer" onCheckedChange={() => setAutoStart(!autoStart)} />
+            <Switch
+              checked={autoStart}
+              className="cursor-pointer"
+              onCheckedChange={() => setAutoStart(!autoStart)}
+            />
           </div>
         </CardFooter>
       </Card>
